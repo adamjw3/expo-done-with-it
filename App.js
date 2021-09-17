@@ -1,21 +1,38 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import AppLoading from 'expo-app-loading';
+import { NavigationContainer } from '@react-navigation/native';
+import navigationTheme from './navigation/navigationTheme';
+import AppNavigator from './navigation/AppNavigator';
+import AuthContext from './auth/context';
+import AuthNavigator from './navigation/AuthNavigator';
+import AppOffline from './components/AppOffline';
+import authStorage from './auth/storage';
+import { navigationRef } from './navigation/rootNavigation';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+    const [user, setUser] = useState(null);
+    const [isReady, setIsReady] = useState(false);
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+    const restoreToken = async () => {
+        const userToken = await authStorage.getUser();
+        if (userToken) setUser(userToken);
+    };
+
+    if (!isReady)
+        return (
+            <AppLoading
+                startAsync={restoreToken}
+                onFinish={() => setIsReady(true)}
+                onError={console.warn}
+            />
+        );
+
+    return (
+        <AuthContext.Provider value={{ user, setUser }}>
+            <AppOffline />
+            <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+                {user ? <AppNavigator /> : <AuthNavigator />}
+            </NavigationContainer>
+        </AuthContext.Provider>
+    );
+}
